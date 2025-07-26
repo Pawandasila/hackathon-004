@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark, neobrutalism } from "@clerk/themes";
+import Header from "@/components/header";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +32,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ClerkProvider
+            publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        >
+          <ConvexClientProvider>
+            <Header />
+
+            <main className="bg-slate-200 min-h-screen text-white overflow-x-hidden">
+              <Toaster richColors />
+
+              {children}
+            </main>
+          </ConvexClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

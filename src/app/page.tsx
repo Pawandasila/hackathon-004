@@ -1,103 +1,143 @@
-import Image from "next/image";
+'use client';
 
+import React, { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
+import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Doc } from '../../convex/_generated/dataModel';
+import { Button } from '@/components/ui/button';
+import { api } from '../../convex/_generated/api';
+import { ListingCard } from '@/components/listing-card';
+import { toast } from 'sonner';
+
+
+interface Location {
+  lat: number;
+  lng: number;
+}
+
+interface ListingWithDistance extends Doc<'listings'> {
+  seller?: Doc<'users'> | null;
+  distance: number;
+}
+
+// Helper function to calculate distance between two lat/lng points (Haversine formula)
+const getDistance = (lat1: number, lon1: number, lat2: number | undefined, lon2: number | undefined): number => {
+  if (typeof lat2 === 'undefined' || typeof lon2 === 'undefined') {
+    return Infinity; // Return infinity for listings without location
+  }
+
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
+// --- Main Home Page Component ---
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const listings = useQuery(api.listings.getActiveListingsWithSeller);
+  const [userLocation, setUserLocation] = useState<Location | null>(null);
+  const [sortedListings, setSortedListings] = useState<ListingWithDistance[]>([]);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  useEffect(() => {
+    // Get user's current location
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      setUserLocation({ lat: 20.5937, lng: 78.9629 }); // Default to center of India
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationError(null);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setLocationError("Could not get your location. Showing listings from across India.");
+        setUserLocation({ lat: 20.5937, lng: 78.9629 }); // Default to center of India
+        toast.error("Could not get your location. Showing listings from across India.");
+      },
+      { timeout: 10000, maximumAge: 600000 } // 10s timeout, 10min cache
+    );
+  }, []);
+
+  useEffect(() => {
+    if (listings && userLocation) {
+      const listingsWithDistance = listings.map((listing: Doc<'listings'> & { seller?: Doc<'users'> | null }) => ({
+        ...listing,
+        distance: getDistance(
+          userLocation.lat,
+          userLocation.lng,
+          listing.latitude,
+          listing.longitude
+        ),
+      }));
+      // Sort by distance, nearest first
+      listingsWithDistance.sort((a: ListingWithDistance, b: ListingWithDistance) => a.distance - b.distance);
+      setSortedListings(listingsWithDistance);
+    }
+  }, [listings, userLocation]);
+
+  const renderContent = () => {
+    if (listings === undefined || !userLocation) {
+      return (
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-12 w-12 animate-spin text-orange-500" />
+          <p className="ml-4 text-lg text-gray-600">
+            {locationError || "Finding surplus near you..."}
+          </p>
+        </div>
+      );
+    }
+
+    if (listings.length === 0) {
+      return (
+        <div className="text-center h-screen flex flex-col justify-center items-center">
+          <h2 className="text-2xl font-bold text-gray-800">No Surplus Available Right Now</h2>
+          <p className="text-gray-500 mt-2">Check back later, or be the first to post something!</p>
+          <Link href="/post" className='mt-6'>
+            <Button className='bg-orange-500 hover:bg-orange-600'>Post Surplus</Button>
+          </Link>
+        </div>
+      );
+    }
+
+    return (
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Fresh Surplus Nearby</h1>
+          <p className="text-gray-600">
+            Here's what other vendors are sharing in your area.
+          </p>
+          {locationError && (
+            <p className="mt-2 text-amber-600 text-sm">{locationError}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {sortedListings.map((listing) => (
+            <ListingCard 
+              key={listing._id} 
+              listing={listing} 
+              distance={listing.distance} 
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          ))}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    );
+  };
+
+  return renderContent();
 }
