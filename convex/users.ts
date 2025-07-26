@@ -136,3 +136,88 @@ export const sendUserOnboarding = mutation({
         });
     }
 });
+
+/**
+ * Update user profile information
+ */
+export const updateProfile = mutation({
+    args: {
+        name: v.optional(v.string()),
+        imageUrl: v.optional(v.string()),
+        shopAddress: v.optional(v.string()),
+        shopImage: v.optional(v.string()),
+        latitude: v.optional(v.float64()),
+        longitude: v.optional(v.float64()),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Called updateProfile without authentication present");
+        }
+
+        // Find the user
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) =>
+                q.eq("tokenIdentifier", identity.tokenIdentifier)
+            )
+            .unique();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Update user with provided fields
+        const updates: any = {};
+        if (args.name !== undefined) updates.name = args.name;
+        if (args.imageUrl !== undefined) updates.imageUrl = args.imageUrl;
+        if (args.shopAddress !== undefined) updates.shopAddress = args.shopAddress;
+        if (args.shopImage !== undefined) updates.shopImage = args.shopImage;
+        if (args.latitude !== undefined) updates.latitude = args.latitude;
+        if (args.longitude !== undefined) updates.longitude = args.longitude;
+        updates.lastActiveAt = Date.now();
+
+        await ctx.db.patch(user._id, updates);
+        return user._id;
+    },
+});
+
+/**
+ * Get user by ID (for other users to see basic info)
+ */
+export const getUserById = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.userId);
+    },
+});
+
+/**
+ * Get user listings (for profile page)
+ */
+export const getCurrentUserListings = query({
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            return [];
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_token", (q) =>
+                q.eq("tokenIdentifier", identity.tokenIdentifier)
+            )
+            .unique();
+
+        if (!user) {
+            return [];
+        }
+
+        const listings = await ctx.db
+            .query("listings")
+            .withIndex("by_sellerId", (q) => q.eq("sellerId", user._id))
+            .collect();
+
+        return listings;
+    },
+});

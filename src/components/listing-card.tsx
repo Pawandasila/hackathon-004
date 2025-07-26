@@ -16,7 +16,7 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-md">
       <div className="relative w-full h-48">
         <Image
-          src={listing.imageUrl + '?tr=w-400,h-400,c-force'} // Optimized image from ImageKit
+          src={listing.imageUrl + '?tr=w-400,h-400,c-force'}
           alt={listing.itemName}
           fill
           className="object-cover"

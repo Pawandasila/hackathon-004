@@ -1,0 +1,28 @@
+[
+  {
+    "description": "Freshly made biryani with aromatic basmati rice, tender chicken pieces, and traditional spices. Perfect for sharing!",
+    "expiresAt": 1735689600000,
+    "imageUrl": "https://images.unsplash.com/photo-1563379091339-03246963d17f?w=500",
+    "isActive": true,
+    "itemName": "Chicken Biryani",
+    "price": 250,
+    "quantity": 4,
+    "sellerId": "j57c5cgkbjb0cbnfm2xzkcrrv17mfj10",
+    "unit": "portions",
+    "latitude": 29.182713,
+    "longitude": 79.486413
+  },
+  {
+    "description": "Homemade butter chicken with rich creamy tomato gravy. Comes with fresh naan bread.",
+    "expiresAt": 1735776000000,
+    "imageUrl": "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=500",
+    "isActive": true,
+    "itemName": "Butter Chicken with Naan",
+    "price": 200,
+    "quantity": 3,
+    "sellerId": "j57c5cgkbjb0cbnfm2xzkcrrv17mfj10",
+    "unit": "servings",
+    "latitude": 29.182713,
+    "longitude": 79.486413
+  }
+]

@@ -75,11 +75,37 @@ export const create = mutation({
 });
 
 /**
+ * Get all listings with seller information (for debugging/fallback)
+ */
+export const getAllListings = query({
+  handler: async (ctx) => {
+    const listings = await ctx.db.query("listings").collect();
+    console.log("All listings in database:", listings.length);
+    
+    // Fetch seller information for each listing
+    const listingsWithSellers = await Promise.all(
+      listings.map(async (listing) => {
+        const seller = await ctx.db.get(listing.sellerId);
+        return { ...listing, seller };
+      })
+    );
+
+    console.log("All listings with sellers:", listingsWithSellers.length);
+    return listingsWithSellers;
+  },
+});
+
+/**
  * Get all active listings with their seller information
  */
 export const getActiveListingsWithSeller = query({
   handler: async (ctx) => {
     const now = Date.now();
+    console.log("Current time:", now);
+    
+    const allListings = await ctx.db.query("listings").collect();
+    console.log("Total listings in DB:", allListings.length);
+    
     const listings = await ctx.db
       .query("listings")
       .filter((q) => 
@@ -90,6 +116,8 @@ export const getActiveListingsWithSeller = query({
       )
       .collect();
 
+    console.log("Active listings found:", listings.length);
+
     // Fetch seller information for each listing
     const listingsWithSellers = await Promise.all(
       listings.map(async (listing) => {
@@ -98,6 +126,7 @@ export const getActiveListingsWithSeller = query({
       })
     );
 
+    console.log("Listings with sellers:", listingsWithSellers.length);
     return listingsWithSellers;
   },
 });
@@ -210,5 +239,50 @@ export const deleteListing = mutation({
     await ctx.db.patch(args.id, { isActive: false });
 
     return args.id;
+  },
+});
+
+/**
+ * Create sample listings for testing (remove this in production)
+ */
+export const createSampleListings = mutation({
+  args: { sellerId: v.id("users") },
+  handler: async (ctx, args) => {
+    const sampleListings = [
+      {
+        sellerId: args.sellerId,
+        itemName: "Fresh Biryani",
+        description: "Delicious chicken biryani with fragrant rice and spices",
+        price: 250,
+        quantity: 4,
+        unit: "portions",
+        imageUrl: "https://images.unsplash.com/photo-1563379091339-03246963d17f?w=500",
+        latitude: 29.182713,
+        longitude: 79.486413,
+        isActive: true,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
+      },
+      {
+        sellerId: args.sellerId,
+        itemName: "Vegetable Samosas",
+        description: "Crispy samosas filled with spiced potatoes and peas",
+        price: 60,
+        quantity: 12,
+        unit: "pieces",
+        imageUrl: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500",
+        latitude: 29.182713,
+        longitude: 79.486413,
+        isActive: true,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      }
+    ];
+
+    const results = [];
+    for (const listing of sampleListings) {
+      const id = await ctx.db.insert("listings", listing);
+      results.push(id);
+    }
+
+    return results;
   },
 });

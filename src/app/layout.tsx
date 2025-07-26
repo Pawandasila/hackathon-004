@@ -5,6 +5,7 @@ import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark, neobrutalism } from "@clerk/themes";
 import Header from "@/components/header";
+import ProfileCompletionChecker from "@/components/profile-completion-checker";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -37,6 +38,7 @@ export default function RootLayout({
         >
           <ConvexClientProvider>
             <Header />
+            <ProfileCompletionChecker />
 
             <main className="bg-slate-200 min-h-screen text-white overflow-x-hidden">
               <Toaster richColors />
