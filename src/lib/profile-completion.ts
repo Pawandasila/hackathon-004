@@ -6,7 +6,10 @@ export interface ProfileCompletionStatus {
   completionPercentage: number;
 }
 
-export function calculateProfileCompletion(user: UserResource | null | undefined): ProfileCompletionStatus {
+export function calculateProfileCompletion(
+  user: UserResource | null | undefined, 
+  convexUser?: any
+): ProfileCompletionStatus {
   if (!user) {
     return {
       isComplete: false,
@@ -16,22 +19,62 @@ export function calculateProfileCompletion(user: UserResource | null | undefined
   }
 
   const missingFields: string[] = [];
+  
+  // Check required fields with priority: Convex DB -> Clerk user object -> Clerk metadata
   const requiredFields = [
-    { key: 'firstName', label: 'First Name', value: user.firstName },
-    { key: 'lastName', label: 'Last Name', value: user.lastName },
-    { key: 'profileImage', label: 'Profile Image', value: user.imageUrl },
-    { key: 'phoneNumber', label: 'Phone Number', value: user.phoneNumbers?.[0]?.phoneNumber },
-    // Check user metadata for additional fields
-    { key: 'shopName', label: 'Shop Name', value: user.publicMetadata?.shopName },
-    { key: 'shopImage', label: 'Shop Image', value: user.publicMetadata?.shopImage },
-    { key: 'address', label: 'Address', value: user.publicMetadata?.address },
-    { key: 'bio', label: 'Bio/Description', value: user.publicMetadata?.bio },
+    { 
+      key: 'firstName', 
+      label: 'First Name', 
+      value: convexUser?.firstName || user.firstName || user.unsafeMetadata?.firstName 
+    },
+    { 
+      key: 'lastName', 
+      label: 'Last Name', 
+      value: convexUser?.lastName || user.lastName || user.unsafeMetadata?.lastName 
+    },
+    { 
+      key: 'profileImage', 
+      label: 'Profile Image', 
+      value: convexUser?.imageUrl || user.imageUrl 
+    },
+    { 
+      key: 'phoneNumber', 
+      label: 'Phone Number', 
+      value: convexUser?.phone || user.phoneNumbers?.[0]?.phoneNumber 
+    },
+    { 
+      key: 'shopName', 
+      label: 'Shop Name', 
+      value: convexUser?.shopName || user.publicMetadata?.shopName 
+    },
+    { 
+      key: 'shopImage', 
+      label: 'Shop Image', 
+      value: convexUser?.shopImage || user.publicMetadata?.shopImage 
+    },
+    { 
+      key: 'address', 
+      label: 'Address', 
+      value: convexUser?.shopAddress || user.publicMetadata?.address 
+    },
+    { 
+      key: 'bio', 
+      label: 'Bio/Description', 
+      value: convexUser?.bio || user.publicMetadata?.bio 
+    },
   ];
 
   requiredFields.forEach(field => {
     if (!field.value || field.value === '') {
       missingFields.push(field.label);
     }
+  });
+
+  // Debug logging (remove in production)
+  console.log('Profile Completion Debug:', {
+    convexUser: !!convexUser,
+    missingFields,
+    requiredFields: requiredFields.map(f => ({ key: f.key, hasValue: !!f.value }))
   });
 
   const completionPercentage = Math.round(

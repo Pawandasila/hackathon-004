@@ -40,7 +40,7 @@ export default function RootLayout({
             <Header />
             <ProfileCompletionChecker />
 
-            <main className="bg-slate-200 min-h-screen text-white overflow-x-hidden">
+            <main className=" min-h-screen text-white overflow-x-hidden">
               <Toaster richColors />
 
               {children}

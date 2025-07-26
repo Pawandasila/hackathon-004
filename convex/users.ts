@@ -9,8 +9,14 @@ export type User = {
   tokenIdentifier: string;
   name: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  bio?: string;
   imageUrl?: string;
+  shopName?: string;
   shopAddress: string;
+  shopImage?: string;
   latitude?: number;
   longitude?: number;
   isVerified: boolean;
@@ -142,8 +148,13 @@ export const sendUserOnboarding = mutation({
  */
 export const updateProfile = mutation({
     args: {
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        bio: v.optional(v.string()),
         name: v.optional(v.string()),
         imageUrl: v.optional(v.string()),
+        shopName: v.optional(v.string()),
         shopAddress: v.optional(v.string()),
         shopImage: v.optional(v.string()),
         latitude: v.optional(v.float64()),
@@ -169,8 +180,13 @@ export const updateProfile = mutation({
 
         // Update user with provided fields
         const updates: any = {};
+        if (args.firstName !== undefined) updates.firstName = args.firstName;
+        if (args.lastName !== undefined) updates.lastName = args.lastName;
+        if (args.phone !== undefined) updates.phone = args.phone;
+        if (args.bio !== undefined) updates.bio = args.bio;
         if (args.name !== undefined) updates.name = args.name;
         if (args.imageUrl !== undefined) updates.imageUrl = args.imageUrl;
+        if (args.shopName !== undefined) updates.shopName = args.shopName;
         if (args.shopAddress !== undefined) updates.shopAddress = args.shopAddress;
         if (args.shopImage !== undefined) updates.shopImage = args.shopImage;
         if (args.latitude !== undefined) updates.latitude = args.latitude;

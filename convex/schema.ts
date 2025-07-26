@@ -7,8 +7,15 @@ export default defineSchema({
     email: v.string(),
     tokenIdentifier: v.string(),
 
+    // --- Personal Information ---
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    bio: v.optional(v.string()),
+
     // --- Profile & Verification ---
     imageUrl: v.optional(v.string()), // User's profile picture
+    shopName: v.optional(v.string()), // Shop/Business name
     shopAddress: v.string(),
     shopImage: v.optional(v.string()),
     isVerified: v.optional(v.boolean()),
