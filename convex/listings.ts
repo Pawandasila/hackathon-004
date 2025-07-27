@@ -1,21 +1,35 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 export type Listing = {
   _id: Id<"listings">;
   _creationTime: number;
   sellerId: Id<"users">;
-  itemName: string;
+  masterItemId: Id<"masterItems">;
   description: string;
   price: number;
+  currency?: string;
   quantity: number;
   unit: string;
+  minQuantity?: number;
   imageUrl: string;
   latitude?: number;
   longitude?: number;
+  deliveryRadius?: number;
+  isDeliveryAvailable?: boolean;
+  isPickupAvailable?: boolean;
   isActive: boolean;
   expiresAt: number;
+  availableFrom?: number;
+  availableUntil?: number;
+  condition?: "fresh" | "good" | "fair";
+  tags?: string[];
+  notes?: string;
+  viewCount?: number;
+  inquiryCount?: number;
+  lastUpdatedAt?: number;
 };
 
 /**
@@ -23,7 +37,7 @@ export type Listing = {
  */
 export const create = mutation({
   args: {
-    itemName: v.string(),
+    masterItemId: v.id("masterItems"),
     description: v.string(),
     price: v.number(),
     quantity: v.number(),
@@ -33,6 +47,13 @@ export const create = mutation({
     longitude: v.optional(v.float64()),
     // Expiry time in hours from now (default 24 hours)
     expiryHours: v.optional(v.number()),
+    // Additional optional fields
+    condition: v.optional(v.union(v.literal("fresh"), v.literal("good"), v.literal("fair"))),
+    tags: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
+    isDeliveryAvailable: v.optional(v.boolean()),
+    isPickupAvailable: v.optional(v.boolean()),
+    deliveryRadius: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -58,16 +79,36 @@ export const create = mutation({
 
     const listingId = await ctx.db.insert("listings", {
       sellerId: user._id,
-      itemName: args.itemName,
       description: args.description,
+      masterItemId: args.masterItemId,
       price: args.price,
       quantity: args.quantity,
       unit: args.unit,
       imageUrl: args.imageUrl,
       latitude: args.latitude,
       longitude: args.longitude,
+      condition: args.condition,
+      tags: args.tags,
+      notes: args.notes,
+      isDeliveryAvailable: args.isDeliveryAvailable,
+      isPickupAvailable: args.isPickupAvailable,
+      deliveryRadius: args.deliveryRadius,
       isActive: true,
       expiresAt,
+      viewCount: 0,
+      inquiryCount: 0,
+      lastUpdatedAt: Date.now(),
+    });
+
+    // Get master item name for notification
+    const masterItem = await ctx.db.get(args.masterItemId);
+    const itemName = masterItem?.name || "item";
+
+    // Send notification to seller about successful listing creation
+    await ctx.runMutation(internal.notifications.notifyListingCreated, {
+      sellerId: user._id,
+      listingId: listingId,
+      itemName: itemName,
     });
 
     return listingId;
@@ -79,8 +120,11 @@ export const create = mutation({
  */
 export const getAllListings = query({
   handler: async (ctx) => {
-    const listings = await ctx.db.query("listings").collect();
-    console.log("All listings in database:", listings.length);
+    const listings = await ctx.db
+      .query("listings")
+      .order("desc") // Sort by creation time, newest first
+      .collect();
+    
     
     // Fetch seller information for each listing
     const listingsWithSellers = await Promise.all(
@@ -89,8 +133,6 @@ export const getAllListings = query({
         return { ...listing, seller };
       })
     );
-
-    console.log("All listings with sellers:", listingsWithSellers.length);
     return listingsWithSellers;
   },
 });
@@ -101,10 +143,6 @@ export const getAllListings = query({
 export const getActiveListingsWithSeller = query({
   handler: async (ctx) => {
     const now = Date.now();
-    console.log("Current time:", now);
-    
-    const allListings = await ctx.db.query("listings").collect();
-    console.log("Total listings in DB:", allListings.length);
     
     const listings = await ctx.db
       .query("listings")
@@ -114,9 +152,9 @@ export const getActiveListingsWithSeller = query({
           q.gt(q.field("expiresAt"), now)
         )
       )
+      .order("desc") // Sort by creation time, newest first
       .collect();
 
-    console.log("Active listings found:", listings.length);
 
     // Fetch seller information for each listing
     const listingsWithSellers = await Promise.all(
@@ -126,7 +164,6 @@ export const getActiveListingsWithSeller = query({
       })
     );
 
-    console.log("Listings with sellers:", listingsWithSellers.length);
     return listingsWithSellers;
   },
 });
@@ -144,6 +181,39 @@ export const getListingById = query({
 
     const seller = await ctx.db.get(listing.sellerId);
     return { ...listing, seller };
+  },
+});
+
+/**
+ * Get similar listings (same master item, different sellers)
+ */
+export const getSimilarListings = query({
+  args: { 
+    masterItemId: v.id("masterItems"),
+    excludeId: v.optional(v.id("listings"))
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query("listings")
+      .withIndex("by_masterItemId", (q) => q.eq("masterItemId", args.masterItemId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .order("desc"); // Sort by creation time, newest first
+    
+    if (args.excludeId) {
+      query = query.filter((q) => q.neq(q.field("_id"), args.excludeId));
+    }
+    
+    const listings = await query.take(5);
+    
+    // Get seller details for each listing
+    const listingsWithSellers = await Promise.all(
+      listings.map(async (listing) => {
+        const seller = await ctx.db.get(listing.sellerId);
+        return { ...listing, seller };
+      })
+    );
+    
+    return listingsWithSellers;
   },
 });
 
@@ -201,6 +271,7 @@ export const getListingsBySeller = query({
     const listings = await ctx.db
       .query("listings")
       .withIndex("by_sellerId", (q) => q.eq("sellerId", args.sellerId))
+      .order("desc") // Sort by creation time, newest first
       .collect();
 
     return listings;
@@ -239,50 +310,5 @@ export const deleteListing = mutation({
     await ctx.db.patch(args.id, { isActive: false });
 
     return args.id;
-  },
-});
-
-/**
- * Create sample listings for testing (remove this in production)
- */
-export const createSampleListings = mutation({
-  args: { sellerId: v.id("users") },
-  handler: async (ctx, args) => {
-    const sampleListings = [
-      {
-        sellerId: args.sellerId,
-        itemName: "Fresh Biryani",
-        description: "Delicious chicken biryani with fragrant rice and spices",
-        price: 250,
-        quantity: 4,
-        unit: "portions",
-        imageUrl: "https://images.unsplash.com/photo-1563379091339-03246963d17f?w=500",
-        latitude: 29.182713,
-        longitude: 79.486413,
-        isActive: true,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours from now
-      },
-      {
-        sellerId: args.sellerId,
-        itemName: "Vegetable Samosas",
-        description: "Crispy samosas filled with spiced potatoes and peas",
-        price: 60,
-        quantity: 12,
-        unit: "pieces",
-        imageUrl: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500",
-        latitude: 29.182713,
-        longitude: 79.486413,
-        isActive: true,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-      }
-    ];
-
-    const results = [];
-    for (const listing of sampleListings) {
-      const id = await ctx.db.insert("listings", listing);
-      results.push(id);
-    }
-
-    return results;
   },
 });

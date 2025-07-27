@@ -14,6 +14,11 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as listings from "../listings.js";
+import type * as masterItems from "../masterItems.js";
+import type * as notifications from "../notifications.js";
+import type * as orders from "../orders.js";
+import type * as platformPrices from "../platformPrices.js";
+import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
 /**
@@ -26,6 +31,11 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   listings: typeof listings;
+  masterItems: typeof masterItems;
+  notifications: typeof notifications;
+  orders: typeof orders;
+  platformPrices: typeof platformPrices;
+  seed: typeof seed;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

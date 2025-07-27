@@ -70,13 +70,6 @@ export function calculateProfileCompletion(
     }
   });
 
-  // Debug logging (remove in production)
-  console.log('Profile Completion Debug:', {
-    convexUser: !!convexUser,
-    missingFields,
-    requiredFields: requiredFields.map(f => ({ key: f.key, hasValue: !!f.value }))
-  });
-
   const completionPercentage = Math.round(
     ((requiredFields.length - missingFields.length) / requiredFields.length) * 100
   );

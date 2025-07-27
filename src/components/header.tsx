@@ -5,29 +5,31 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
-import { Authenticated, Unauthenticated } from 'convex/react';
+import { Authenticated, Unauthenticated, useQuery } from 'convex/react';
 import { BarLoader } from 'react-spinners';
-import { Map, MessageSquare, PlusCircle, Bell } from 'lucide-react';
+import { Map, MessageSquare, PlusCircle, Bell, User2Icon } from 'lucide-react';
 
 import { Button } from './ui/button';
-
-
-import { useTransactionStore } from '@/lib/transaction-store'; 
-import NotificationsPanel from './notifications-panel';
+import { Badge } from './ui/badge';
+import { NotificationsPanelNew } from './notifications-panel-new';
 import { useStoreUser } from '@/hooks/user-store-user';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { api } from '../../convex/_generated/api';
 
 export default function Header() {
   const { isLoading } = useStoreUser();
+  const { user } = useCurrentUser();
   const pathname = usePathname();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
 
-  // Get notifications from the mock store to show an indicator
-  const { getUnreadCount, currentUserId } = useTransactionStore();
-  const unreadCount = getUnreadCount(currentUserId);
+  // Get unread notifications count
+  const unreadCount = useQuery(
+    api.notifications.getUnreadCount, 
+    user ? { userId: user._id } : "skip"
+  );
 
   const navLinks = [
-    { name: 'Find Surplus', href: '/find', icon: Map },
-    { name: 'My Chats', href: '/chats', icon: MessageSquare },
+    { name: 'Profile', href: '/profile', icon: User2Icon },
   ];
 
   return (
@@ -51,9 +53,7 @@ export default function Header() {
             {/* Nav & Auth */}
             <div className="flex items-center gap-4">
               <Authenticated>
-                <nav className="hidden md:flex items-center gap-6">
-                  {/* ... nav links ... */}
-                </nav>
+                
                 <div className="flex items-center gap-4">
                   <Link href="/post">
                     <Button className="bg-orange-500 hover:bg-orange-600 text-white">
@@ -69,12 +69,34 @@ export default function Header() {
                     onClick={() => setIsPanelOpen(true)}
                   >
                     <Bell className="h-5 w-5 text-gray-600" />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500" />
+                    {unreadCount && unreadCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      >
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </Badge>
                     )}
                   </Button>
                   <UserButton afterSignOutUrl="/" />
                 </div>
+
+                <nav className="hidden md:flex items-center gap-6">
+                  {navLinks.map((link) => (
+                    <Link key={link.name} href={link.href}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`${
+                          pathname === link.href ? 'text-orange-500' : ''
+                        }`}
+                      >
+                        <link.icon className="w-4 h-4 mr-2" />
+                        {link.name}
+                      </Button>
+                    </Link>
+                  ))}
+                </nav>
               </Authenticated>
               <Unauthenticated>
                 <SignInButton mode="modal">
@@ -93,10 +115,13 @@ export default function Header() {
       </header>
 
       {/* Render the panel */}
-      <NotificationsPanel
-        isOpen={isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
-      />
+      {user && (
+        <NotificationsPanelNew
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen(!isPanelOpen)}
+          userId={user._id}
+        />
+      )}
     </>
   );
 }

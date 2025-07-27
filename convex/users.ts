@@ -7,8 +7,8 @@ export type User = {
   _id: Id<"users">;
   _creationTime: number;
   tokenIdentifier: string;
-  name: string;
   email: string;
+  name: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -17,10 +17,14 @@ export type User = {
   shopName?: string;
   shopAddress: string;
   shopImage?: string;
+  shopDescription?: string;
   latitude?: number;
   longitude?: number;
-  isVerified: boolean;
-  lastActiveAt: number;
+  isVerified?: boolean;
+  isActive?: boolean;
+  accountType?: "vendor" | "customer" | "both";
+  lastActiveAt?: number;
+  verifiedAt?: number;
 };
 
 /**
@@ -38,6 +42,7 @@ export const store = internalMutation({
     shopAddress: v.string(),
     latitude: v.optional(v.float64()),
     longitude: v.optional(v.float64()),
+    accountType: v.optional(v.union(v.literal("vendor"), v.literal("customer"), v.literal("both"))),
   },
   handler: async (ctx, args) => {
     // Check if a user with this tokenIdentifier already exists
@@ -71,6 +76,7 @@ export const store = internalMutation({
       longitude: args.longitude,
       isVerified: false, // Default to not verified
       lastActiveAt: Date.now(),
+      accountType: args.accountType ?? "both", // Default to "both"
     });
 
     return userId;
@@ -115,7 +121,7 @@ export const getCurrentUser = query({
  */
 export const sendUserOnboarding = mutation({
     args: {
-        shopAddress: v.string(), // The client must provide this during onboarding
+        shopAddress: v.string(),
         latitude: v.optional(v.float64()),
         longitude: v.optional(v.float64()),
     },
@@ -129,18 +135,17 @@ export const sendUserOnboarding = mutation({
             throw new Error("Email is required for onboarding");
         }
 
-        // Call the internal mutation with all the required data
-        // This is the corrected call using the 'internal' object.
         return await ctx.runMutation(internal.users.store, {
             tokenIdentifier: identity.tokenIdentifier,
-            name: identity.name ?? "Street Vendor", // Use the name from auth
-            email: identity.email, // We've verified email exists above
-            imageUrl: identity.pictureUrl, // Profile picture from auth
+            name: identity.name ?? "Street Vendor",
+            email: identity.email,
+            imageUrl: identity.pictureUrl,
             shopAddress: args.shopAddress,
             latitude: args.latitude,
             longitude: args.longitude,
+            accountType: "both",
         });
-    }
+    },
 });
 
 /**
@@ -157,8 +162,10 @@ export const updateProfile = mutation({
         shopName: v.optional(v.string()),
         shopAddress: v.optional(v.string()),
         shopImage: v.optional(v.string()),
+        shopDescription: v.optional(v.string()),
         latitude: v.optional(v.float64()),
         longitude: v.optional(v.float64()),
+        accountType: v.optional(v.union(v.literal("vendor"), v.literal("customer"), v.literal("both"))),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -189,8 +196,10 @@ export const updateProfile = mutation({
         if (args.shopName !== undefined) updates.shopName = args.shopName;
         if (args.shopAddress !== undefined) updates.shopAddress = args.shopAddress;
         if (args.shopImage !== undefined) updates.shopImage = args.shopImage;
+        if (args.shopDescription !== undefined) updates.shopDescription = args.shopDescription;
         if (args.latitude !== undefined) updates.latitude = args.latitude;
         if (args.longitude !== undefined) updates.longitude = args.longitude;
+        if (args.accountType !== undefined) updates.accountType = args.accountType;
         updates.lastActiveAt = Date.now();
 
         await ctx.db.patch(user._id, updates);
