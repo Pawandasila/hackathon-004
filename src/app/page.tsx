@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
-import { Loader2, MapPinOff } from "lucide-react";
+import { Loader2, MapPinOff, Package } from "lucide-react";
+import Link from "next/link";
 
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -129,14 +130,97 @@ export default function Home() {
           )}
 
         {/* Listings Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {(activeListings && activeListings.length > 0
-            ? activeListings
-            : allListingsFromDb || []
-          ).map((listing) => (
-            <ListingCard key={listing._id} listing={listing} distance={null} />
-          ))}
-        </div>
+        {(activeListings && activeListings.length > 0) || (allListingsFromDb && allListingsFromDb.length > 0) ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {(activeListings && activeListings.length > 0
+              ? activeListings
+              : allListingsFromDb || []
+            ).map((listing) => (
+              <ListingCard key={listing._id} listing={listing} distance={null} />
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              {/* Empty State Icon */}
+              <div className="mb-6">
+                <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-12 h-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M9 9l3-3 3 3"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Empty State Content */}
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                No surplus items available
+              </h3>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                There are currently no listings in your area. Be the first to share your surplus items with the community!
+              </p>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {user ? (
+                  <Link href="/post">
+                    <Button className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 px-8 py-3">
+                      <Package className="w-4 h-4 mr-2" />
+                      Post Your First Item
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/sign-up">
+                    <Button className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 px-8 py-3">
+                      Join Rasoio Community
+                    </Button>
+                  </Link>
+                )}
+                
+                <div>
+                  <Button
+                    variant="outline"
+                    onClick={requestLocationPermission}
+                    className="w-full sm:w-auto mt-3 text-black"
+                    disabled={locationStatus === "loading"}
+                  >
+                    {locationStatus === "loading" ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Checking Location...
+                      </>
+                    ) : (
+                      <>
+                        <MapPinOff className="w-4 h-4 mr-2" />
+                        Refresh for Nearby Items
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">Why Rasoio?</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Reduce food waste in your community</li>
+                  <li>• Find fresh, affordable surplus items</li>
+                  <li>• Connect with local vendors and neighbors</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Profile Completion Modal */}
