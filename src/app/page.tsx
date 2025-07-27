@@ -37,7 +37,7 @@ export default function Home() {
     setLocationStatus("loading");
     if (!navigator.geolocation) {
       setLocationStatus("unavailable");
-      toast.error("Geolocation is not supported by your browser.");
+      toast.info("Geolocation is not supported by your browser. You can still browse all listings.");
       return;
     }
 
@@ -48,14 +48,18 @@ export default function Home() {
           longitude: position.coords.longitude,
         });
         setLocationStatus("granted");
-        toast.success("Location found!");
+        toast.success("Location found! Now you can see distances to listings.");
       },
       (error) => {
-        console.error("Error getting location:", error);
+        console.log("Location access declined:", error.message);
         setLocationStatus("denied");
-        toast.error("Location access was denied.");
+        toast.info("Location access was declined. You can still browse all listings without distance information.");
       },
-      { timeout: 10000 }
+      { 
+        timeout: 10000,
+        enableHighAccuracy: false,
+        maximumAge: 300000 // 5 minutes cache
+      }
     );
   }, []);
 

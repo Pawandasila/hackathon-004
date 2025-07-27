@@ -29,6 +29,7 @@ export default function Header() {
   );
 
   const navLinks = [
+    { name: 'Messages', href: '/messages', icon: MessageSquare },
     { name: 'Profile', href: '/profile', icon: User2Icon },
   ];
 
@@ -53,6 +54,22 @@ export default function Header() {
             {/* Nav & Auth */}
             <div className="flex items-center gap-4">
               <Authenticated>
+                <nav className="hidden md:flex items-center gap-2">
+                  {navLinks.map((link) => (
+                    <Link key={link.name} href={link.href}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`${
+                          pathname === link.href ? 'text-orange-500' : ''
+                        }`}
+                      >
+                        <link.icon className="w-4 h-4 mr-2" />
+                        {link.name}
+                      </Button>
+                    </Link>
+                  ))}
+                </nav>
                 
                 <div className="flex items-center gap-4">
                   <Link href="/post">
@@ -81,22 +98,7 @@ export default function Header() {
                   <UserButton afterSignOutUrl="/" />
                 </div>
 
-                <nav className="hidden md:flex items-center gap-6">
-                  {navLinks.map((link) => (
-                    <Link key={link.name} href={link.href}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`${
-                          pathname === link.href ? 'text-orange-500' : ''
-                        }`}
-                      >
-                        <link.icon className="w-4 h-4 mr-2" />
-                        {link.name}
-                      </Button>
-                    </Link>
-                  ))}
-                </nav>
+                
               </Authenticated>
               <Unauthenticated>
                 <SignInButton mode="modal">

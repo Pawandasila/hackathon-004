@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -648,6 +649,10 @@ export const seedPlatformPrices = internalMutation({
           lastUpdatedAt: now,
           priceHistory: [],
           isActive: true,
+          // Additional optional fields
+          category: masterItem.category,
+          productUrl: `https://${platform.name.toLowerCase().replace(/\s+/g, '')}.com/product/${masterItem.name.toLowerCase().replace(/\s+/g, '-')}`,
+          productId: `${platform.name.toLowerCase().replace(/\s+/g, '')}-${masterItem.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
         });
         
         seedCount++;
@@ -766,6 +771,10 @@ export const seedAll = mutation({
               lastUpdatedAt: now,
               priceHistory: [],
               isActive: true,
+              // Additional optional fields
+              category: masterItem.category,
+              productUrl: `https://${platform.name.toLowerCase().replace(/\s+/g, '')}.com/product/${masterItem.name.toLowerCase().replace(/\s+/g, '-')}`,
+              productId: `${platform.name.toLowerCase().replace(/\s+/g, '')}-${masterItem.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
             });
             seedCount++;
           }
@@ -870,5 +879,748 @@ export const createSampleListings = mutation({
     }
 
     return { created: sampleListings.length };
+  },
+});
+
+/**
+ * Bulk seed master items from JSON file
+ */
+export const seedMasterItemsFromFile = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if we already have master items
+    const existingItems = await ctx.db.query("masterItems").collect();
+    if (existingItems.length > 0) {
+      console.log("Master items already exist, skipping seed");
+      return { message: "Master items already exist", count: existingItems.length };
+    }
+
+    // Note: In a real deployment, you'd read from your data source
+    // For now, we'll use the hardcoded data from the file structure
+    const masterItemsData = [
+      {
+        "name": "Onion",
+        "category": "Vegetable",
+        "aliases": ["Pyaz", "Kanda", "Dungri"],
+        "description": "Fresh red onions, essential for Indian cooking",
+        "imageUrl": "https://images.unsplash.com/photo-1508747703725-719777637510?w=300"
+      },
+      {
+        "name": "Potato",
+        "category": "Vegetable", 
+        "aliases": ["Aloo", "Batata", "Urulaikizhangu"],
+        "description": "Versatile potatoes, perfect for curries and snacks",
+        "imageUrl": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300"
+      },
+      {
+        "name": "Tomato",
+        "category": "Vegetable",
+        "aliases": ["Tamatar", "Thakkali"],
+        "description": "Juicy red tomatoes, rich in vitamins",
+        "imageUrl": "https://images.unsplash.com/photo-1546470427-227f88b8f999?w=300"
+      },
+      {
+        "name": "Carrot",
+        "category": "Vegetable",
+        "aliases": ["Gajar", "Carrot"],
+        "description": "Crunchy orange carrots, high in beta-carotene",
+        "imageUrl": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300"
+      },
+      {
+        "name": "Cabbage",
+        "category": "Vegetable",
+        "aliases": ["Patta Gobi", "Bandh Gobi"],
+        "description": "Fresh green cabbage, great for salads and cooking",
+        "imageUrl": "https://images.unsplash.com/photo-1594282486868-4cd846573524?w=300"
+      },
+      {
+        "name": "Cauliflower",
+        "category": "Vegetable",
+        "aliases": ["Phool Gobi", "Gobi"],
+        "description": "White cauliflower heads, versatile vegetable",
+        "imageUrl": "https://images.unsplash.com/photo-1568584711271-35691d8b67d1?w=300"
+      },
+      {
+        "name": "Green Beans",
+        "category": "Vegetable",
+        "aliases": ["French Beans", "Sem", "Farasbi"],
+        "description": "Tender green beans, rich in fiber",
+        "imageUrl": "https://images.unsplash.com/photo-1586185092905-5ada9f3b8c52?w=300"
+      },
+      {
+        "name": "Bell Pepper",
+        "category": "Vegetable",
+        "aliases": ["Capsicum", "Shimla Mirch"],
+        "description": "Colorful bell peppers, sweet and crunchy",
+        "imageUrl": "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=300"
+      },
+      {
+        "name": "Spinach",
+        "category": "Vegetable",
+        "aliases": ["Palak"],
+        "description": "Fresh green spinach leaves, iron-rich",
+        "imageUrl": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300"
+      },
+      {
+        "name": "Cucumber",
+        "category": "Vegetable",
+        "aliases": ["Kheera"],
+        "description": "Cool and refreshing cucumbers",
+        "imageUrl": "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=300"
+      },
+      {
+        "name": "Apple",
+        "category": "Fruit",
+        "aliases": ["Seb"],
+        "description": "Crisp and sweet apples, perfect for snacking",
+        "imageUrl": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300"
+      },
+      {
+        "name": "Banana",
+        "category": "Fruit",
+        "aliases": ["Kela"],
+        "description": "Ripe yellow bananas, natural energy source",
+        "imageUrl": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300"
+      },
+      {
+        "name": "Orange",
+        "category": "Fruit",
+        "aliases": ["Santra", "Narangi"],
+        "description": "Juicy oranges, high in vitamin C",
+        "imageUrl": "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=300"
+      },
+      {
+        "name": "Mango",
+        "category": "Fruit",
+        "aliases": ["Aam"],
+        "description": "Sweet and aromatic mangoes, king of fruits",
+        "imageUrl": "https://images.unsplash.com/photo-1553279768-865429fa0078?w=300"
+      },
+      {
+        "name": "Grapes",
+        "category": "Fruit",
+        "aliases": ["Angoor"],
+        "description": "Fresh green/black grapes, antioxidant-rich",
+        "imageUrl": "https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=300"
+      },
+      {
+        "name": "Milk",
+        "category": "Dairy",
+        "aliases": ["Doodh"],
+        "description": "Fresh full-fat milk, rich in calcium",
+        "imageUrl": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300"
+      },
+      {
+        "name": "Paneer",
+        "category": "Dairy",
+        "aliases": ["Cottage Cheese"],
+        "description": "Fresh homemade paneer, high in protein",
+        "imageUrl": "https://images.unsplash.com/photo-1631452180539-96aca7d48617?w=300"
+      },
+      {
+        "name": "Yogurt",
+        "category": "Dairy",
+        "aliases": ["Dahi", "Curd"],
+        "description": "Fresh homemade yogurt, probiotic-rich",
+        "imageUrl": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300"
+      },
+      {
+        "name": "Butter",
+        "category": "Dairy",
+        "aliases": ["Makhan"],
+        "description": "Fresh white butter, made from cream",
+        "imageUrl": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=300"
+      },
+      {
+        "name": "Cheese",
+        "category": "Dairy",
+        "aliases": ["Cheese Slice"],
+        "description": "Processed cheese slices, perfect for sandwiches",
+        "imageUrl": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=300"
+      },
+      {
+        "name": "Rice",
+        "category": "Grain",
+        "aliases": ["Chawal", "Arisi"],
+        "description": "Premium basmati rice, aromatic and fluffy",
+        "imageUrl": "https://images.unsplash.com/photo-1536304447766-da0ed4ce1b73?w=300"
+      },
+      {
+        "name": "Wheat Flour",
+        "category": "Grain",
+        "aliases": ["Atta", "Gehun ka Atta"],
+        "description": "Whole wheat flour, perfect for rotis",
+        "imageUrl": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300"
+      },
+      {
+        "name": "Lentils",
+        "category": "Pulse",
+        "aliases": ["Dal", "Masoor"],
+        "description": "Red lentils, protein-rich legume",
+        "imageUrl": "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=300"
+      },
+      {
+        "name": "Chickpeas",
+        "category": "Pulse",
+        "aliases": ["Chana", "Chole"],
+        "description": "Dry chickpeas, versatile protein source",
+        "imageUrl": "https://images.unsplash.com/photo-1610991149688-de86c42ad9fd?w=300"
+      },
+      {
+        "name": "Black Gram",
+        "category": "Pulse",
+        "aliases": ["Urad Dal", "Black Lentil"],
+        "description": "Black gram lentils, essential for South Indian dishes",
+        "imageUrl": "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=300"
+      },
+      {
+        "name": "Turmeric Powder",
+        "category": "Spice",
+        "aliases": ["Haldi", "Manjal"],
+        "description": "Pure turmeric powder, natural antiseptic",
+        "imageUrl": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=300"
+      },
+      {
+        "name": "Red Chili Powder",
+        "category": "Spice",
+        "aliases": ["Lal Mirch", "Cayenne"],
+        "description": "Hot red chili powder, adds heat to dishes",
+        "imageUrl": "https://images.unsplash.com/photo-1583221054176-8a834ee0476c?w=300"
+      },
+      {
+        "name": "Cumin Seeds",
+        "category": "Spice",
+        "aliases": ["Jeera"],
+        "description": "Aromatic cumin seeds, essential spice",
+        "imageUrl": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300"
+      },
+      {
+        "name": "Coriander Seeds",
+        "category": "Spice",
+        "aliases": ["Dhania"],
+        "description": "Fragrant coriander seeds, mild flavoring",
+        "imageUrl": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300"
+      },
+      {
+        "name": "Garam Masala",
+        "category": "Spice",
+        "aliases": ["Mixed Spice"],
+        "description": "Aromatic spice blend, signature Indian taste",
+        "imageUrl": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300"
+      },
+      {
+        "name": "Coriander Leaves",
+        "category": "Herb",
+        "aliases": ["Dhania Patta", "Cilantro"],
+        "description": "Fresh coriander leaves, perfect garnish",
+        "imageUrl": "https://images.unsplash.com/photo-1535189487909-a262ad10c165?w=300"
+      },
+      {
+        "name": "Mint Leaves",
+        "category": "Herb",
+        "aliases": ["Pudina"],
+        "description": "Fresh mint leaves, cooling and aromatic",
+        "imageUrl": "https://images.unsplash.com/photo-1628556270448-4d4e4148e1b1?w=300"
+      },
+      {
+        "name": "Chicken",
+        "category": "Protein",
+        "aliases": ["Murga", "Kozhi"],
+        "description": "Fresh chicken meat, high-quality protein",
+        "imageUrl": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300"
+      },
+      {
+        "name": "Mutton",
+        "category": "Protein",
+        "aliases": ["Bakra", "Goat Meat"],
+        "description": "Fresh mutton, tender and flavorful",
+        "imageUrl": "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=300"
+      },
+      {
+        "name": "Fish",
+        "category": "Protein",
+        "aliases": ["Machli", "Meen"],
+        "description": "Fresh fish, omega-3 rich protein",
+        "imageUrl": "https://images.unsplash.com/photo-1544943910-4c1dc44aab44?w=300"
+      },
+      {
+        "name": "Eggs",
+        "category": "Protein",
+        "aliases": ["Ande"],
+        "description": "Fresh chicken eggs, complete protein source",
+        "imageUrl": "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=300"
+      },
+      {
+        "name": "Tea",
+        "category": "Beverage",
+        "aliases": ["Chai", "Cha"],
+        "description": "Premium black tea leaves",
+        "imageUrl": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300"
+      },
+      {
+        "name": "Coffee",
+        "category": "Beverage",
+        "aliases": ["Kaapi"],
+        "description": "Aromatic coffee beans, freshly ground",
+        "imageUrl": "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300"
+      },
+      {
+        "name": "Soft Drinks",
+        "category": "Beverage",
+        "aliases": ["Coca Cola", "Pepsi"],
+        "description": "Chilled soft drinks, various flavors",
+        "imageUrl": "https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=300"
+      },
+      {
+        "name": "Lassi",
+        "category": "Beverage",
+        "aliases": ["Buttermilk"],
+        "description": "Traditional yogurt-based drink",
+        "imageUrl": "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300"
+      },
+      {
+        "name": "Chow Mein",
+        "category": "Street Food",
+        "aliases": ["Noodles", "Hakka Noodles"],
+        "description": "Stir-fried noodles with vegetables",
+        "imageUrl": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=300"
+      },
+      {
+        "name": "Momos",
+        "category": "Street Food",
+        "aliases": ["Dumplings"],
+        "description": "Steamed dumplings with filling",
+        "imageUrl": "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=300"
+      },
+      {
+        "name": "Pizza",
+        "category": "Street Food",
+        "aliases": ["Italian Pizza"],
+        "description": "Wood-fired pizza with cheese and toppings",
+        "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300"
+      },
+      {
+        "name": "Burger",
+        "category": "Street Food",
+        "aliases": ["Hamburger"],
+        "description": "Grilled burger with fresh vegetables",
+        "imageUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300"
+      },
+      {
+        "name": "Biryani",
+        "category": "Street Food",
+        "aliases": ["Biriyani", "Pulao"],
+        "description": "Aromatic rice dish with meat and spices",
+        "imageUrl": "https://images.unsplash.com/photo-1563379091339-03246963d321?w=300"
+      },
+      {
+        "name": "Gulab Jamun",
+        "category": "Sweet",
+        "aliases": ["Gulabjamun"],
+        "description": "Traditional Indian sweet in sugar syrup",
+        "imageUrl": "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300"
+      },
+      {
+        "name": "Rasgulla",
+        "category": "Sweet",
+        "aliases": ["Rosogolla"],
+        "description": "Spongy cottage cheese balls in syrup",
+        "imageUrl": "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300"
+      },
+      {
+        "name": "Jalebi",
+        "category": "Sweet",
+        "aliases": ["Jilapi"],
+        "description": "Spiral-shaped crispy sweet soaked in syrup",
+        "imageUrl": "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300"
+      },
+      {
+        "name": "Laddu",
+        "category": "Sweet",
+        "aliases": ["Ladoo"],
+        "description": "Round sweet balls made with flour and ghee",
+        "imageUrl": "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=300"
+      },
+      {
+        "name": "Ice Cream",
+        "category": "Sweet",
+        "aliases": ["Kulfi", "Frozen Dessert"],
+        "description": "Creamy frozen dessert, various flavors",
+        "imageUrl": "https://images.unsplash.com/photo-1567206563064-6f60f40a2b57?w=300"
+      },
+      {
+        "name": "Chips",
+        "category": "Snack",
+        "aliases": ["Wafers", "Crisps"],
+        "description": "Crunchy potato chips, salted",
+        "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=300"
+      },
+      {
+        "name": "Biscuits",
+        "category": "Snack",
+        "aliases": ["Cookies"],
+        "description": "Sweet and savory biscuits",
+        "imageUrl": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300"
+      },
+      {
+        "name": "Namkeen",
+        "category": "Snack",
+        "aliases": ["Mixture", "Bhujia"],
+        "description": "Spicy Indian snack mix",
+        "imageUrl": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=300"
+      },
+      {
+        "name": "Nuts",
+        "category": "Snack",
+        "aliases": ["Dry Fruits", "Almonds"],
+        "description": "Mixed nuts and dry fruits",
+        "imageUrl": "https://images.unsplash.com/photo-1599599810694-57a2ca8276a8?w=300"
+      },
+      {
+        "name": "Popcorn",
+        "category": "Snack",
+        "aliases": ["Bhutta"],
+        "description": "Fresh popped corn, buttered",
+        "imageUrl": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300"
+      },
+      {
+        "name": "Cigarettes",
+        "category": "Tobacco",
+        "aliases": ["Smoke"],
+        "description": "Tobacco cigarettes (18+ only)",
+        "imageUrl": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300"
+      },
+      {
+        "name": "Paan",
+        "category": "Traditional",
+        "aliases": ["Betel Leaf"],
+        "description": "Traditional betel leaf preparation",
+        "imageUrl": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300"
+      },
+      {
+        "name": "Bread",
+        "category": "Bakery",
+        "aliases": ["Pav", "Roti"],
+        "description": "Fresh white bread loaf",
+        "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300"
+      },
+      {
+        "name": "Paratha",
+        "category": "Bakery",
+        "aliases": ["Stuffed Bread"],
+        "description": "Layered flatbread, various stuffings",
+        "imageUrl": "https://images.unsplash.com/photo-1506084868230-bb9d95c24759?w=300"
+      },
+      {
+        "name": "Naan",
+        "category": "Bakery",
+        "aliases": ["Tandoori Bread"],
+        "description": "Tandoor-baked leavened bread",
+        "imageUrl": "https://images.unsplash.com/photo-1506084868230-bb9d95c24759?w=300"
+      }
+    ];
+
+    const createdItems = [];
+    for (const item of masterItemsData) {
+      const itemId = await ctx.db.insert("masterItems", {
+        name: item.name,
+        category: item.category,
+        aliases: item.aliases || [],
+        description: item.description || "",
+        imageUrl: item.imageUrl || "",
+        isActive: true,
+      });
+      createdItems.push({ id: itemId, name: item.name });
+    }
+
+    return { created: createdItems.length, items: createdItems };
+  },
+});
+
+/**
+ * Bulk seed platform prices with proper masterItemId references
+ */
+export const seedPlatformPricesFromFile = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if we already have platform prices
+    const existingPrices = await ctx.db.query("platformPrices").collect();
+    if (existingPrices.length > 0) {
+      console.log("Platform prices already exist, skipping seed");
+      return { message: "Platform prices already exist", count: existingPrices.length };
+    }
+
+    // Get all master items
+    const masterItems = await ctx.db.query("masterItems").collect();
+    if (masterItems.length === 0) {
+      throw new Error("No master items found. Please run seedMasterItemsFromFile first.");
+    }
+
+    // Helper to find master item by name
+    const findMasterItem = (name: string) => {
+      const item = masterItems.find(i => i.name === name);
+      if (!item) {
+        console.warn(`Master item "${name}" not found, skipping platform price entry`);
+        return null;
+      }
+      return item;
+    };
+
+    const platformPricesData = [
+      {
+        "masterItemName": "Onion",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 3500,
+        "originalPrice": 4000,
+        "discountPercentage": 12,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.2,
+        "reviewCount": 1250,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Onion",
+        "platformName": "Swiggy Instamart",
+        "platformLogo": "🛵",
+        "price": 3800,
+        "originalPrice": 4200,
+        "discountPercentage": 10,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "15-25 min",
+        "deliveryFee": 3000,
+        "minimumOrder": 9900,
+        "rating": 4.1,
+        "reviewCount": 890,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Potato",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 2800,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.3,
+        "reviewCount": 1100,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Tomato",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 4500,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.1,
+        "reviewCount": 1350,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Apple",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 15000,
+        "originalPrice": 18000,
+        "discountPercentage": 17,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.5,
+        "reviewCount": 2100,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Banana",
+        "platformName": "Swiggy Instamart",
+        "platformLogo": "🛵",
+        "price": 6000,
+        "unit": "dozen",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "15-25 min",
+        "deliveryFee": 3000,
+        "minimumOrder": 9900,
+        "rating": 4.0,
+        "reviewCount": 890,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Milk",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 6000,
+        "unit": "litre",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.6,
+        "reviewCount": 3500,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Paneer",
+        "platformName": "Blinkit",
+        "platformLogo": "🛒",
+        "price": 32000,
+        "originalPrice": 35000,
+        "discountPercentage": 9,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "10-15 min",
+        "deliveryFee": 2500,
+        "minimumOrder": 10000,
+        "rating": 4.4,
+        "reviewCount": 1800,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Rice",
+        "platformName": "BigBasket",
+        "platformLogo": "🛍️",
+        "price": 8500,
+        "originalPrice": 9500,
+        "discountPercentage": 11,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "1-3 hours",
+        "deliveryFee": 4000,
+        "minimumOrder": 20000,
+        "rating": 4.5,
+        "reviewCount": 2800,
+        "region": "Delhi"
+      },
+      {
+        "masterItemName": "Chicken",
+        "platformName": "Licious",
+        "platformLogo": "🍗",
+        "price": 28000,
+        "unit": "kg",
+        "isAvailable": true,
+        "stockStatus": "in_stock",
+        "deliveryTime": "2-4 hours",
+        "deliveryFee": 5000,
+        "minimumOrder": 25000,
+        "rating": 4.6,
+        "reviewCount": 4500,
+        "region": "Delhi"
+      }
+    ];
+
+    const now = Date.now();
+    const createdPrices = [];
+    
+    for (const priceData of platformPricesData) {
+      const masterItem = findMasterItem(priceData.masterItemName);
+      if (!masterItem) continue;
+
+      const priceId = await ctx.db.insert("platformPrices", {
+        masterItemId: masterItem._id,
+        platformName: priceData.platformName,
+        platformLogo: priceData.platformLogo || "🏪",
+        price: priceData.price,
+        originalPrice: priceData.originalPrice || undefined,
+        discountPercentage: priceData.discountPercentage || undefined,
+        unit: priceData.unit || "kg",
+        isAvailable: priceData.isAvailable !== undefined ? priceData.isAvailable : true,
+        stockStatus: (priceData.stockStatus as any) || "in_stock",
+        deliveryTime: priceData.deliveryTime || "1-2 hours",
+        deliveryFee: priceData.deliveryFee || 2500,
+        minimumOrder: priceData.minimumOrder || 10000,
+        rating: priceData.rating || 4.0,
+        reviewCount: priceData.reviewCount || 100,
+        region: priceData.region || "Delhi",
+        lastUpdatedAt: now,
+        isActive: true,
+        // Additional optional fields
+        category: masterItem.category, // Use master item category
+        productUrl: `https://${priceData.platformName.toLowerCase().replace(/\s+/g, '')}.com/product/${masterItem.name.toLowerCase().replace(/\s+/g, '-')}`,
+        productId: `${priceData.platformName.toLowerCase().replace(/\s+/g, '')}-${masterItem.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+        priceHistory: [
+          {
+            price: priceData.price,
+            timestamp: now,
+          }
+        ],
+      });
+      
+      createdPrices.push({ 
+        id: priceId, 
+        item: priceData.masterItemName, 
+        platform: priceData.platformName 
+      });
+    }
+
+    return { created: createdPrices.length, prices: createdPrices };
+  },
+});
+
+/**
+ * Comprehensive seed function that uses the full data sets
+ * This will seed master items and platform prices with complete data
+ */
+export const seedComprehensive = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const results = {
+      masterItems: null as any,
+      platformPrices: null as any,
+    };
+
+    try {
+      // 1. Seed comprehensive master items from the full data set
+      console.log("1. Seeding comprehensive master items...");
+      const existingMasterItems = await ctx.db.query("masterItems").collect();
+      if (existingMasterItems.length === 0) {
+        results.masterItems = await ctx.runMutation(internal.seed.seedMasterItemsFromFile);
+      } else {
+        results.masterItems = { message: "Master items already exist", count: existingMasterItems.length };
+      }
+      
+      // 2. Seed comprehensive platform prices with proper masterItemId references and lastUpdatedAt
+      console.log("2. Seeding comprehensive platform prices...");
+      const existingPlatformPrices = await ctx.db.query("platformPrices").collect();
+      if (existingPlatformPrices.length === 0) {
+        results.platformPrices = await ctx.runMutation(internal.seed.seedPlatformPricesFromFile);
+      } else {
+        results.platformPrices = { message: "Platform prices already exist", count: existingPlatformPrices.length };
+      }
+
+      return {
+        success: true,
+        message: "Comprehensive data seeded successfully!",
+        results,
+      };
+
+    } catch (error) {
+      console.error("Comprehensive seeding error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        results,
+      };
+    }
   },
 });

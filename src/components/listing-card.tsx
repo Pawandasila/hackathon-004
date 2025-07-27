@@ -32,7 +32,7 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-orange-300">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-orange-300 flex flex-col h-full">
       <div className="relative w-full h-46">
         <Image
           src={
@@ -65,7 +65,7 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 mb-2">
           {listing.description || "Product Description"}
         </h3>
@@ -122,25 +122,25 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
           )}
         </div>
 
-        <div className="flex items-center justify-between mb-4 p-2 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between mb-3 p-2 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {listing.seller?.imageUrl ? (
               <Image
                 src={listing.seller.imageUrl}
                 alt={listing.seller.name || "Seller"}
                 width={32}
                 height={32}
-                className="rounded-full object-cover"
+                className="rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-orange-600 font-semibold text-sm">
                   {(listing.seller?.name || "V").charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
 
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
                 <p className="text-sm font-medium text-gray-800 truncate">
                   {listing.seller?.shopName ||
@@ -152,16 +152,18 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
                 )}
               </div>
               {listing.seller?.shopAddress && (
-                <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                  <MapPin className="h-3 w-3 flex-shrink-0" />
-                  {listing.seller.shopAddress}
-                </p>
+                <div className="flex items-center gap-1 min-w-0">
+                  <MapPin className="h-3 w-3 flex-shrink-0 text-gray-400" />
+                  <p className="text-xs text-gray-500 truncate">
+                    {listing.seller.shopAddress}
+                  </p>
+                </div>
               )}
             </div>
           </div>
 
           {distance !== null && (
-            <div className="text-right">
+            <div className="text-right flex-shrink-0 ml-2">
               <p className="text-xs text-gray-500">Distance</p>
               <p className="text-sm font-medium text-orange-600">
                 {distance.toFixed(1)} km
@@ -176,11 +178,14 @@ export const ListingCard = ({ listing, distance }: ListingCardProps) => {
           </p>
         )}
 
-        <Link href={`/listing/${listing._id}`} className="block">
-          <Button className="w-full bg-green-500 hover:bg-green-600 transition-colors">
-            View Details & Contact
-          </Button>
-        </Link>
+        {/* Push button to bottom with flex-grow spacer */}
+        <div className="mt-auto">
+          <Link href={`/listing/${listing._id}`} className="block">
+            <Button className="w-full bg-green-500 hover:bg-green-600 transition-colors">
+              View Details & Contact
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
